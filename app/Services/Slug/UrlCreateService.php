@@ -4,23 +4,28 @@ namespace App\Services\Slug;
 
 use App\Models\Url;
 use App\Repositories\Contracts\UrlRepositoryInterface;
-use App\Services\Slug\SlugGenerateService;
 
 class UrlCreateService 
 {
-    public function __construct(private SlugGenerateService $slugGenerateService, private UrlRepositoryInterface $urlRepository)
+    public function __construct(private ShortUrlEncoderService $shortUrlEncoderService, private UrlRepositoryInterface $urlRepository)
     {}
 
     public function createUrl (array $data):Url
     {
-        $slug = $data['custom_slug'] ?? $this->slugGenerateService->generate();
-        
-
+        //create first without slug
         $url = $this->urlRepository->create([
             'user_id' => auth()->user->id,
             'original_url' => $data['original_url'],
-            'slug' => $slug
+            'slug' => null
         ]);
+
+        //generate slug from id or custom slug
+            $slug = $data['custom_slug'] ?? $this->shortUrlEncoderService->encode($url->id);
+
+        //update slug
+            $url->update([
+                'slug' => $slug
+            ]);
 
         return $url;
     }
